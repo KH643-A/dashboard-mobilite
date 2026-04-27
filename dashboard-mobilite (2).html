@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Observatoire Mobilité Post-Sinistre</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --gmf-blue: #1F4E79;
+            --gmf-blue-light: #4472C4;
+            --gmf-blue-bg: #E3F2FD;
+            --assist-green: #2E7D32;
+            --assist-green-light: #4CAF50;
+            --assist-green-bg: #E8F5E9;
+            --bg-page: #F5F7FA;
+            --bg-card: #FFFFFF;
+            --text-dark: #1A1A1A;
+            --text-gray: #666666;
+            --text-light: #999999;
+            --border-light: #E8E8E8;
+            --ecart-red: #D32F2F;
+            --ecart-bg: #FFEBEE;
+            --convergence-green: #388E3C;
+            --convergence-bg: #E8F5E9;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            background: var(--bg-page);
+            color: var(--text-dark);
+            line-height: 1.5;
+            min-height: 100vh;
+        }
+
+        .dashboard {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        .header {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 28px 32px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .header-content h1 {
+            font-size: 26px;
+            font-weight: 700;
+            color: var(--text-dark);
+            margin-bottom: 6px;
+        }
+
+        .header-content p {
+            color: var(--text-gray);
+            font-size: 14px;
+        }
+
+        .sample-badges {
+            display: flex;
+            gap: 10px;
+        }
+
+        .badge {
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            white-space: nowrap;
+        }
+
+        .badge-blue {
+            background: var(--gmf-blue-bg);
+            color: var(--gmf-blue);
+        }
+
+        .badge-green {
+            background: var(--assist-green-bg);
+            color: var(--assist-green);
+        }
+
+        .badge-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .badge-blue .badge-dot { background: var(--gmf-blue); }
+        .badge-green .badge-dot { background: var(--assist-green); }
+
+        .badge-count {
+            font-weight: 400;
+            opacity: 0.7;
+            margin-left: 4px;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 20px;
+            background: var(--bg-card);
+            padding: 8px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+
+        .tab {
+            padding: 10px 20px;
+            border: none;
+            background: transparent;
+            color: var(--text-gray);
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+
+        .tab:hover:not(.active) {
+            background: var(--bg-page);
+            color: var(--text-dark);
+        }
+
+        .tab.active {
+            background: var(--gmf-blue);
+            color: white;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            transition: all 0.2s;
+        }
+
+        .card:hover {
+            box-shadow: 0 4px 16px rgba(0,0,0,0.10);
+        }
+
+        .card-title {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--text-dark);
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card-icon {
+            font-size: 18px;
+        }
+
+        .comparison-row {
+            margin-bottom: 18px;
+        }
+
+        .comparison-label {
+            font-size: 13px;
+            color: var(--text-dark);
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .bars-wrapper {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .bar-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .bar-track {
+            flex: 1;
+            height: 22px;
+            background: var(--bg-page);
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .bar-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .bar-blue {
+            background: linear-gradient(90deg, var(--gmf-blue), var(--gmf-blue-light));
+        }
+
+        .bar-green {
+            background: linear-gradient(90deg, var(--assist-green), var(--assist-green-light));
+        }
+
+        .percentage {
+            font-size: 13px;
+            font-weight: 700;
+            min-width: 50px;
+            text-align: right;
+        }
+
+        .percentage-blue { color: var(--gmf-blue); }
+        .percentage-green { color: var(--assist-green); }
+
+        .gauge-container {
+            display: flex;
+            justify-content: space-around;
+            margin: 20px 0 10px;
+            flex-wrap: wrap;
+            gap: 30px;
+        }
+
+        .gauge {
+            text-align: center;
+        }
+
+        .gauge-circle {
+            width: 130px;
+            height: 130px;
+            margin: 0 auto 12px;
+            position: relative;
+        }
+
+        .gauge-svg {
+            transform: rotate(-90deg);
+        }
+
+        .gauge-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 26px;
+            font-weight: 700;
+        }
+
+        .gauge-text-blue { color: var(--gmf-blue); }
+        .gauge-text-green { color: var(--assist-green); }
+
+        .gauge-label {
+            font-size: 13px;
+            color: var(--text-gray);
+            font-weight: 600;
+        }
+
+        .analyse-box {
+            background: var(--bg-page);
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-top: 16px;
+            font-size: 12px;
+            color: var(--text-gray);
+            line-height: 1.5;
+        }
+
+        .analyse-box strong {
+            color: var(--text-dark);
+        }
+
+        .correction-box {
+            background: var(--ecart-bg);
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-top: 16px;
+            font-size: 12px;
+            color: var(--text-dark);
+            line-height: 1.5;
+            border-left: 3px solid var(--ecart-red);
+        }
+
+        .correction-box strong {
+            color: var(--ecart-red);
+        }
+
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+            gap: 16px;
+        }
+
+        .kpi-card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 22px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            border-left: 4px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .kpi-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.10);
+        }
+
+        .kpi-card.ecart-marque {
+            border-left-color: var(--ecart-red);
+        }
+
+        .kpi-card.convergence {
+            border-left-color: var(--convergence-green);
+        }
+
+        .kpi-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 16px;
+            gap: 12px;
+        }
+
+        .kpi-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--text-dark);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .kpi-badge {
+            font-size: 10px;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            white-space: nowrap;
+        }
+
+        .badge-ecart {
+            background: var(--ecart-bg);
+            color: var(--ecart-red);
+        }
+
+        .badge-convergence {
+            background: var(--convergence-bg);
+            color: var(--convergence-green);
+        }
+
+        .kpi-values {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 12px;
+            gap: 10px;
+        }
+
+        .kpi-value {
+            text-align: center;
+            flex: 1;
+        }
+
+        .kpi-number {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 4px;
+            line-height: 1.2;
+        }
+
+        .kpi-number-blue { color: var(--gmf-blue); }
+        .kpi-number-green { color: var(--assist-green); }
+
+        .kpi-sublabel {
+            font-size: 10px;
+            color: var(--text-light);
+            text-transform: uppercase;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+
+        .kpi-diff {
+            font-size: 12px;
+            color: var(--text-gray);
+            text-align: center;
+            font-weight: 600;
+            padding: 6px;
+            background: var(--bg-page);
+            border-radius: 6px;
+            margin-bottom: 12px;
+        }
+
+        .kpi-note {
+            font-size: 12px;
+            color: var(--text-gray);
+            line-height: 1.5;
+            padding-top: 12px;
+            border-top: 1px solid var(--border-light);
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+        }
+
+        .ranking-table {
+            width: 100%;
+            margin-top: 12px;
+            border-collapse: collapse;
+        }
+
+        .ranking-table thead th {
+            text-align: left;
+            padding: 12px;
+            font-size: 11px;
+            color: var(--text-light);
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 2px solid var(--border-light);
+        }
+
+        .ranking-table thead th.text-center {
+            text-align: center;
+        }
+
+        .ranking-table tbody td {
+            padding: 14px 12px;
+            font-size: 14px;
+            border-bottom: 1px solid #F5F5F5;
+        }
+
+        .ranking-table tbody td.text-center {
+            text-align: center;
+        }
+
+        .ranking-table tbody tr:hover {
+            background: #FAFBFC;
+        }
+
+        .ranking-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .rank-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 22px;
+            border-radius: 4px;
+            font-weight: 700;
+            font-size: 11px;
+            margin-left: 8px;
+        }
+
+        .rank-1 {
+            background: linear-gradient(135deg, #FFD700, #FFED4E);
+            color: #8B6914;
+        }
+
+        .rank-2 {
+            background: linear-gradient(135deg, #C0C0C0, #E8E8E8);
+            color: #666;
+        }
+
+        .legend {
+            display: flex;
+            gap: 16px;
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid var(--border-light);
+            font-size: 12px;
+            color: var(--text-gray);
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .legend-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 2px;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .card, .kpi-card {
+            animation: fadeIn 0.4s ease-out backwards;
+        }
+
+        .grid > *:nth-child(1) { animation-delay: 0.05s; }
+        .grid > *:nth-child(2) { animation-delay: 0.10s; }
+        .grid > *:nth-child(3) { animation-delay: 0.15s; }
+        .kpi-grid > *:nth-child(1) { animation-delay: 0.05s; }
+        .kpi-grid > *:nth-child(2) { animation-delay: 0.10s; }
+        .kpi-grid > *:nth-child(3) { animation-delay: 0.15s; }
+        .kpi-grid > *:nth-child(4) { animation-delay: 0.20s; }
+        .kpi-grid > *:nth-child(5) { animation-delay: 0.25s; }
+        .kpi-grid > *:nth-child(6) { animation-delay: 0.30s; }
+
+        @media (max-width: 768px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+            .header {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        const GaugeCircle = ({ value, color, label }) => {
+            const [animatedValue, setAnimatedValue] = useState(0);
+            const radius = 54;
+            const circumference = 2 * Math.PI * radius;
+            const offset = circumference - (animatedValue / 100) * circumference;
+
+            useEffect(() => {
+                const timer = setTimeout(() => setAnimatedValue(value), 100);
+                return () => clearTimeout(timer);
+            }, [value]);
+
+            const colorVar = color === 'blue' ? '#1F4E79' : '#2E7D32';
+
+            return (
+                <div className="gauge">
+                    <div className="gauge-circle">
+                        <svg className="gauge-svg" width="130" height="130">
+                            <circle cx="65" cy="65" r={radius} fill="none" stroke="#F0F0F0" strokeWidth="10" />
+                            <circle cx="65" cy="65" r={radius} fill="none" stroke={colorVar} strokeWidth="10"
+                                strokeLinecap="round" strokeDasharray={circumference} strokeDashoffset={offset}
+                                style={{ transition: 'stroke-dashoffset 1s ease-out' }} />
+                        </svg>
+                        <div className={`gauge-text gauge-text-${color === 'blue' ? 'blue' : 'green'}`}>
+                            {animatedValue.toFixed(1)}%
+                        </div>
+                    </div>
+                    <div className="gauge-label">{label}</div>
+                </div>
+            );
+        };
+
+        const ComparisonBar = ({ label, valueBlue, valueGreen, maxValue = 100 }) => {
+            const [animate, setAnimate] = useState(false);
+
+            useEffect(() => {
+                const timer = setTimeout(() => setAnimate(true), 100);
+                return () => clearTimeout(timer);
+            }, []);
+
+            return (
+                <div className="comparison-row">
+                    <div className="comparison-label">{label}</div>
+                    <div className="bars-wrapper">
+                        <div className="bar-row">
+                            <div className="bar-track">
+                                <div className="bar-fill bar-blue" 
+                                    style={{ width: animate ? `${(valueBlue / maxValue) * 100}%` : '0%' }}></div>
+                            </div>
+                            <span className="percentage percentage-blue">{valueBlue}%</span>
+                        </div>
+                        <div className="bar-row">
+                            <div className="bar-track">
+                                <div className="bar-fill bar-green" 
+                                    style={{ width: animate ? `${(valueGreen / maxValue) * 100}%` : '0%' }}></div>
+                            </div>
+                            <span className="percentage percentage-green">{valueGreen}%</span>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const KPICard = ({ title, type, valueBlue, valueGreen, diff, note, icon }) => {
+            return (
+                <div className={`kpi-card ${type}`}>
+                    <div className="kpi-header">
+                        <div className="kpi-title">
+                            <span>{icon}</span>
+                            {title}
+                        </div>
+                        <span className={`kpi-badge badge-${type === 'ecart-marque' ? 'ecart' : 'convergence'}`}>
+                            {type === 'ecart-marque' ? 'Écart marqué' : 'Convergence'}
+                        </span>
+                    </div>
+                    <div className="kpi-values">
+                        <div className="kpi-value">
+                            <div className="kpi-number kpi-number-blue">{valueBlue}%</div>
+                            <div className="kpi-sublabel">Communauté</div>
+                        </div>
+                        <div className="kpi-value">
+                            <div className="kpi-number kpi-number-green">{valueGreen}%</div>
+                            <div className="kpi-sublabel">Assistance</div>
+                        </div>
+                    </div>
+                    <div className="kpi-diff">{diff}</div>
+                    {note && (
+                        <div className="kpi-note">
+                            <span>ℹ️</span>
+                            <span>{note}</span>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const Legend = () => (
+            <div className="legend">
+                <div className="legend-item">
+                    <div className="legend-dot" style={{background: '#1F4E79'}}></div>
+                    Communauté GMF (Intentionnel)
+                </div>
+                <div className="legend-item">
+                    <div className="legend-dot" style={{background: '#2E7D32'}}></div>
+                    Assistance Fidélia (Vécu)
+                </div>
+            </div>
+        );
+
+        const Dashboard = () => {
+            const [activeTab, setActiveTab] = useState('synthese');
+
+            return (
+                <div className="dashboard">
+                    <div className="header">
+                        <div className="header-content">
+                            <h1>Observatoire Mobilité Post-Sinistre</h1>
+                            <p>Comparatif des attentes : Intentionnel vs Réel</p>
+                        </div>
+                        <div className="sample-badges">
+                            <div className="badge badge-blue">
+                                <span className="badge-dot"></span>
+                                COMMUNAUTÉ GMF
+                                <span className="badge-count">n = 455</span>
+                            </div>
+                            <div className="badge badge-green">
+                                <span className="badge-dot"></span>
+                                ASSISTANCE FIDELIA
+                                <span className="badge-count">n = 2 885</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="tabs">
+                        <button className={`tab ${activeTab === 'synthese' ? 'active' : ''}`}
+                            onClick={() => setActiveTab('synthese')}>Synthèse & KPIs</button>
+                        <button className={`tab ${activeTab === 'alternatives' ? 'active' : ''}`}
+                            onClick={() => setActiveTab('alternatives')}>Alternatives & VE</button>
+                        <button className={`tab ${activeTab === 'profils' ? 'active' : ''}`}
+                            onClick={() => setActiveTab('profils')}>Profils & Contexte</button>
+                    </div>
+
+                    {activeTab === 'synthese' && (
+                        <div className="kpi-grid">
+                            <KPICard title="VR Indispensable" type="ecart-marque" valueBlue={61} valueGreen={48.8} diff="-12.2 pts"
+                                note="Les panélistes à froid surestiment de 12 points le besoin absolu d'un véhicule de remplacement." icon="🚗" />
+                            <KPICard title="Préférence Solution GMF" type="convergence" valueBlue={75} valueGreen={72.8} diff="-2.2 pts"
+                                note="Convergence très forte. L'immense majorité souhaite un accompagnement clé en main par l'assureur." icon="🤝" />
+                            <KPICard title="Acceptation CB Virtuelle" type="ecart-marque" valueBlue={83} valueGreen={67.3} diff="-15.7 pts"
+                                note="Forte baisse d'acceptation en situation réelle. Reste minoritaire sur la population globale (~6-8%)." icon="💳" />
+                            <KPICard title="Sensibilité Environnementale" type="convergence" valueBlue={58} valueGreen={58.9} diff="+0.9 pts"
+                                note="Convergence quasi-parfaite sur l'importance de l'impact environnemental." icon="🌱" />
+                            <KPICard title="Sinistre < 3 ans" type="ecart-marque" valueBlue={34} valueGreen={52.3} diff="+18.3 pts"
+                                note="Différence clé : le panel Assistance a une véritable expérience récente d'immobilisation." icon="⚠️" />
+                            <KPICard title="Durée d'immobilisation ≤ 5j" type="convergence" valueBlue={76} valueGreen={74.5} diff="-1.5 pts"
+                                note="La tolérance temporelle pour les alternatives est identique entre déclaratif et vécu." icon="⏱️" />
+                        </div>
+                    )}
+
+                    {activeTab === 'alternatives' && (
+                        <>
+                            <div className="grid">
+                                <div className="card">
+                                    <div className="card-title">
+                                        <span className="card-icon">🚗</span>
+                                        Acceptation des 6 alternatives (Après probabilisation)
+                                    </div>
+                                    <ComparisonBar label="Taxis / VTC ponctuels" valueBlue={25} valueGreen={30.2} maxValue={50} />
+                                    <ComparisonBar label="Budget mobilité" valueBlue={24} valueGreen={24.8} maxValue={50} />
+                                    <ComparisonBar label="Train" valueBlue={16} valueGreen={18.7} maxValue={50} />
+                                    <ComparisonBar label="Transports en commun" valueBlue={15} valueGreen={16.8} maxValue={50} />
+                                    <ComparisonBar label="Covoiturage organisé" valueBlue={13} valueGreen={12.8} maxValue={50} />
+                                    <ComparisonBar label="Vélo / trottinette" valueBlue={2} valueGreen={3.4} maxValue={50} />
+                                    <div className="analyse-box">
+                                        <strong>Analyse :</strong> La hiérarchie reste stricte. Les Taxis/VTC et le Budget mobilité sont les leaders incontestés. L'Assistance se montre même légèrement plus ouverte aux Taxis/VTC en situation réelle (+5,2 pts).
+                                    </div>
+                                    <Legend />
+                                </div>
+
+                                <div className="card">
+                                    <div className="card-title">
+                                        <span className="card-icon">⚡</span>
+                                        Acceptation Voiture Électrique (Total OUI)
+                                    </div>
+                                    <div className="gauge-container">
+                                        <GaugeCircle value={70} color="blue" label="Communauté" />
+                                        <GaugeCircle value={60.6} color="green" label="Assistance" />
+                                    </div>
+                                    <div className="correction-box">
+                                        <strong>Correction :</strong> Le chiffre Assistance de 35% dans le PPTX d'origine est erroné (c'est le chiffre Comm). Le vrai taux Assistance probabilisé est de 28,7%.
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="card">
+                                <div className="card-title">
+                                    <span className="card-icon">🏆</span>
+                                    Classement Top 3 des solutions
+                                </div>
+                                <table className="ranking-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Solution</th>
+                                            <th className="text-center">Communauté</th>
+                                            <th className="text-center">Assistance</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td><strong>Taxis / VTC</strong></td>
+                                            <td className="text-center">
+                                                <span className="percentage-blue" style={{fontWeight: 700}}>82%</span>
+                                                <span className="rank-badge rank-2">#2</span>
+                                            </td>
+                                            <td className="text-center">
+                                                <span className="percentage-green" style={{fontWeight: 700}}>84.3%</span>
+                                                <span className="rank-badge rank-1">#1</span>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Budget mobilité</strong></td>
+                                            <td className="text-center">
+                                                <span className="percentage-blue" style={{fontWeight: 700}}>84%</span>
+                                                <span className="rank-badge rank-1">#1</span>
+                                            </td>
+                                            <td className="text-center">
+                                                <span className="percentage-green" style={{fontWeight: 700}}>81.3%</span>
+                                                <span className="rank-badge rank-2">#2</span>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Covoiturage</strong></td>
+                                            <td className="text-center">
+                                                <span className="percentage-blue" style={{fontWeight: 700}}>47%</span>
+                                            </td>
+                                            <td className="text-center">
+                                                <span className="percentage-green" style={{fontWeight: 700}}>45.4%</span>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </>
+                    )}
+
+                    {activeTab === 'profils' && (
+                        <div className="grid">
+                            <div className="card">
+                                <div className="card-title">
+                                    <span className="card-icon">👥</span>
+                                    Données socio-démographiques
+                                </div>
+                                <ComparisonBar label="Âge moyen" valueBlue={67} valueGreen={70} maxValue={100} />
+                                <ComparisonBar label="Usage quotidien voiture" valueBlue={53} valueGreen={53.6} maxValue={100} />
+                                <ComparisonBar label="Foyer à 1 voiture" valueBlue={50} valueGreen={52} maxValue={100} />
+                                <ComparisonBar label="Enfants à charge" valueBlue={13} valueGreen={15.1} maxValue={100} />
+                                <Legend />
+                            </div>
+
+                            <div className="card">
+                                <div className="card-title">
+                                    <span className="card-icon">📍</span>
+                                    Lieu de vie vs Sinistralité
+                                </div>
+                                <div style={{fontSize: '12px', color: 'var(--text-gray)', marginBottom: '12px', fontWeight: 600}}>
+                                    Zone de résidence
+                                </div>
+                                <ComparisonBar label="Urbaine" valueBlue={38} valueGreen={41.5} maxValue={50} />
+                                <ComparisonBar label="Rurale" valueBlue={34} valueGreen={36.4} maxValue={50} />
+                                <ComparisonBar label="Périurbaine" valueBlue={28} valueGreen={22.1} maxValue={50} />
+                                <Legend />
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        ReactDOM.render(<Dashboard />, document.getElementById('root'));
+    </script>
+</body>
+</html>
